@@ -1,0 +1,442 @@
+{
+  "project": {
+    "name": "讲座预订系统",
+    "version": "1.0.0",
+    "description": "基于 Docker 的微服务架构部署配置",
+    "repository": "https://github.com/moguttemite/booking_system_aws_docker.git"
+  },
+
+  "deployment_environments": {
+    "production": {
+      "compose_file": "docker-compose.yml",
+      "description": "生产环境 - 只暴露Nginx端口，内部服务隔离",
+      "ports": {
+        "external": ["80", "443"],
+        "internal": ["3000", "8000", "5432"]
+      },
+      "networks": {
+        "backend_net": "数据库和后端专用网络",
+        "public_net": "前端和代理公共网络"
+      },
+      "volumes": {
+        "postgres_data": "数据库数据持久化"
+      }
+    },
+    
+    "development": {
+      "compose_file": "docker-compose.dev.yml", 
+      "description": "开发环境 - 暴露所有端口便于调试",
+      "ports": {
+        "external": ["80", "443", "3000", "8000", "5432"],
+        "internal": []
+      },
+      "networks": {
+        "backend_net": "数据库和后端专用网络",
+        "public_net": "前端和代理公共网络"
+      },
+      "volumes": {
+        "postgres_data_dev": "开发数据库数据持久化"
+      }
+    }
+  },
+
+  "docker_containers": {
+    "database": {
+      "image": "postgres:15-alpine",
+      "container_name": "booking_database",
+      "build_context": "./database",
+      "ports": {
+        "production": "expose: 5432",
+        "development": "5432:5432"
+      },
+      "environment": {
+        "POSTGRES_DB": "lecture_booking",
+        "POSTGRES_USER": "lecture_admin",
+        "POSTGRES_PASSWORD": "postgresroot",
+        "POSTGRES_INITDB_ARGS": "--encoding=UTF-8 --lc-collate=C --lc-ctype=C",
+        "PGDATA": "/var/lib/postgresql/data/pgdata"
+      },
+      "volumes": [
+        "postgres_data:/var/lib/postgresql/data",
+        "./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro"
+      ],
+      "networks": ["backend_net"],
+      "health_check": {
+        "test": "pg_isready -U lecture_admin -d lecture_booking",
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 5,
+        "start_period": "30s"
+      },
+      "restart_policy": "unless-stopped"
+    },
+
+    "backend": {
+      "image": "custom-fastapi",
+      "container_name": "booking_backend",
+      "build_context": "./booking_system/booking_backend/fastapi",
+      "ports": {
+        "production": "expose: 8000",
+        "development": "8000:8000"
+      },
+      "environment": {
+        "POSTGRES_SERVER": "database",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_USER": "lecture_admin",
+        "POSTGRES_PASSWORD": "postgresroot",
+        "POSTGRES_DB": "lecture_booking",
+        "SECRET_KEY": "your-secret-key-here-change-in-production",
+        "ALGORITHM": "HS256",
+        "ACCESS_TOKEN_EXPIRE_MINUTES": "30",
+        "FIRST_SUPERUSER": "admin@example.com",
+        "FIRST_SUPERUSER_PASSWORD": "admin123"
+      },
+      "depends_on": ["database"],
+      "networks": ["backend_net", "public_net"],
+      "health_check": {
+        "test": "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\"",
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3,
+        "start_period": "30s"
+      },
+      "restart_policy": "unless-stopped"
+    },
+
+    "frontend": {
+      "image": "custom-nextjs",
+      "container_name": "booking_frontend",
+      "build_context": "./booking_system/frontend",
+      "ports": {
+        "production": "expose: 3000",
+        "development": "3000:3000"
+      },
+      "environment": {
+        "NODE_ENV": "production",
+        "NEXT_PUBLIC_API_BASE_URL": "http://proxy/api"
+      },
+      "depends_on": ["backend"],
+      "networks": ["public_net"],
+      "health_check": {
+        "test": "node -e \"require('http').get('http://localhost:3000', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\"",
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3,
+        "start_period": "30s"
+      },
+      "restart_policy": "unless-stopped"
+    },
+
+    "proxy": {
+      "image": "custom-nginx",
+      "container_name": "booking_proxy",
+      "build_context": "./proxy",
+      "ports": {
+        "production": "80:80, 443:443",
+        "development": "80:80, 443:443"
+      },
+      "depends_on": ["frontend", "backend"],
+      "networks": ["public_net"],
+      "health_check": {
+        "test": "wget --no-verbose --tries=1 --spider http://localhost/health || exit 1",
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3,
+        "start_period": "30s"
+      },
+      "restart_policy": "unless-stopped",
+      "routing": {
+        "/": "frontend:3000",
+        "/api/": "backend:8000",
+        "/health": "backend:8000/health"
+      }
+    }
+  },
+
+  "docker_networks": {
+    "backend_net": {
+      "driver": "bridge",
+      "internal": false,
+      "description": "数据库和后端服务专用网络",
+      "services": ["database", "backend"]
+    },
+    "public_net": {
+      "driver": "bridge", 
+      "internal": false,
+      "description": "前端和代理服务公共网络",
+      "services": ["frontend", "proxy", "backend"]
+    }
+  },
+
+  "docker_volumes": {
+    "postgres_data": {
+      "driver": "local",
+      "description": "生产环境数据库数据持久化"
+    },
+    "postgres_data_dev": {
+      "driver": "local",
+      "description": "开发环境数据库数据持久化"
+    }
+  },
+
+  "aws_deployment": {
+    "target_platform": "AWS Linux",
+    "instance_type": "t3.medium",
+    "region": "ap-northeast-1",
+    "deployment_method": "Docker容器化部署",
+    
+    "infrastructure": {
+      "compute": {
+        "service": "EC2",
+        "instance_type": "t3.medium",
+        "ami": "Amazon Linux 2",
+        "storage": "30GB EBS GP3"
+      },
+      "networking": {
+        "vpc": "默认VPC",
+        "subnet": "公有子网",
+        "security_groups": [
+          {
+            "name": "web-sg",
+            "rules": [
+              {"type": "HTTP", "port": 80, "source": "0.0.0.0/0"},
+              {"type": "HTTPS", "port": 443, "source": "0.0.0.0/0"},
+              {"type": "SSH", "port": 22, "source": "your-ip/32"}
+            ]
+          }
+        ]
+      },
+      "storage": {
+        "ebs_volume": {
+          "type": "gp3",
+          "size": "30GB",
+          "encryption": true
+        }
+      }
+    },
+
+    "deployment_commands": {
+      "install_docker": [
+        "sudo yum update -y",
+        "sudo yum install -y docker",
+        "sudo systemctl start docker",
+        "sudo systemctl enable docker",
+        "sudo usermod -a -G docker ec2-user"
+      ],
+      "install_docker_compose": [
+        "sudo curl -L \"https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
+        "sudo chmod +x /usr/local/bin/docker-compose"
+      ],
+      "deploy_application": [
+        "git clone https://github.com/moguttemite/booking_system_aws_docker.git",
+        "cd booking_system_aws_docker",
+        "docker-compose build",
+        "docker-compose up -d"
+      ]
+    },
+
+    "environment_variables": {
+      "production": {
+        "SECRET_KEY": "change-this-in-production",
+        "POSTGRES_PASSWORD": "change-this-in-production",
+        "FIRST_SUPERUSER_PASSWORD": "change-this-in-production"
+      }
+    },
+
+    "ssl_certificate": {
+      "method": "Let's Encrypt",
+      "domain": "your-domain.com",
+      "auto_renewal": true,
+      "nginx_config": "proxy/nginx.conf"
+    },
+
+    "monitoring": {
+      "cloudwatch": {
+        "enabled": true,
+        "metrics": ["CPU", "Memory", "Disk", "Network"]
+      },
+      "logs": {
+        "cloudwatch_logs": true,
+        "log_groups": [
+          "booking-system/application",
+          "booking-system/nginx",
+          "booking-system/postgresql"
+        ]
+      }
+    },
+
+    "backup_strategy": {
+      "database": {
+        "method": "pg_dump",
+        "frequency": "daily",
+        "retention": "30 days",
+        "storage": "S3"
+      },
+      "application": {
+        "method": "Docker volume backup",
+        "frequency": "weekly",
+        "retention": "12 weeks"
+      }
+    },
+
+    "scaling": {
+      "horizontal": {
+        "load_balancer": "Application Load Balancer",
+        "auto_scaling": {
+          "min_capacity": 1,
+          "max_capacity": 5,
+          "target_cpu": 70
+        }
+      },
+      "database": {
+        "rds": {
+          "instance_class": "db.t3.micro",
+          "multi_az": false,
+          "backup_retention": 7
+        }
+      }
+    }
+  },
+
+  "deployment_scripts": {
+    "aws_setup": {
+      "file": "install-ec2.sh",
+      "description": "AWS EC2环境初始化脚本",
+      "commands": [
+        "Docker安装",
+        "Docker Compose安装", 
+        "Git配置",
+        "防火墙设置"
+      ]
+    },
+    "deployment": {
+      "file": "deploy.sh",
+      "description": "应用部署脚本",
+      "commands": [
+        "代码拉取",
+        "镜像构建",
+        "服务启动",
+        "健康检查"
+      ]
+    }
+  },
+
+  "port_configuration": {
+    "production": {
+      "description": "生产环境端口配置",
+      "external_access": {
+        "80": "HTTP访问",
+        "443": "HTTPS访问"
+      },
+      "internal_communication": {
+        "3000": "前端服务",
+        "8000": "后端API",
+        "5432": "数据库"
+      }
+    },
+    "development": {
+      "description": "开发环境端口配置",
+      "external_access": {
+        "80": "代理服务",
+        "443": "HTTPS代理",
+        "3000": "前端直接访问",
+        "8000": "后端API直接访问",
+        "5432": "数据库直接访问"
+      }
+    }
+  },
+
+  "health_checks": {
+    "database": {
+      "command": "pg_isready -U lecture_admin -d lecture_booking",
+      "interval": "10s",
+      "timeout": "5s",
+      "retries": 5
+    },
+    "backend": {
+      "command": "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\"",
+      "interval": "30s",
+      "timeout": "10s",
+      "retries": 3
+    },
+    "frontend": {
+      "command": "node -e \"require('http').get('http://localhost:3000', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\"",
+      "interval": "30s",
+      "timeout": "10s",
+      "retries": 3
+    },
+    "proxy": {
+      "command": "wget --no-verbose --tries=1 --spider http://localhost/health || exit 1",
+      "interval": "30s",
+      "timeout": "10s",
+      "retries": 3
+    }
+  },
+
+  "deployment_commands": {
+    "local_development": {
+      "start": "docker-compose -f docker-compose.dev.yml up -d",
+      "stop": "docker-compose -f docker-compose.dev.yml down",
+      "restart": "docker-compose -f docker-compose.dev.yml restart",
+      "logs": "docker-compose -f docker-compose.dev.yml logs -f",
+      "status": "docker-compose -f docker-compose.dev.yml ps"
+    },
+    "production": {
+      "start": "docker-compose up -d",
+      "stop": "docker-compose down",
+      "restart": "docker-compose restart",
+      "logs": "docker-compose logs -f",
+      "status": "docker-compose ps",
+      "build": "docker-compose build --no-cache"
+    },
+    "aws_deployment": {
+      "setup": "./install-ec2.sh",
+      "deploy": "./deploy.sh",
+      "update": "git pull && docker-compose build && docker-compose up -d",
+      "backup": "docker-compose exec database pg_dump -U lecture_admin lecture_booking > backup.sql"
+    }
+  },
+
+  "environment_variables": {
+    "database": {
+      "POSTGRES_DB": "lecture_booking",
+      "POSTGRES_USER": "lecture_admin",
+      "POSTGRES_PASSWORD": "postgresroot",
+      "POSTGRES_SERVER": "database",
+      "POSTGRES_PORT": "5432"
+    },
+    "backend": {
+      "SECRET_KEY": "your-secret-key-here-change-in-production",
+      "ALGORITHM": "HS256",
+      "ACCESS_TOKEN_EXPIRE_MINUTES": "30",
+      "FIRST_SUPERUSER": "admin@example.com",
+      "FIRST_SUPERUSER_PASSWORD": "admin123"
+    },
+    "frontend": {
+      "NEXT_PUBLIC_API_BASE_URL": "http://proxy/api",
+      "NODE_ENV": "production"
+    }
+  },
+
+  "file_structure": {
+    "docker_compose_files": {
+      "docker-compose.yml": "生产环境配置",
+      "docker-compose.dev.yml": "开发环境配置"
+    },
+    "dockerfiles": {
+      "database/Dockerfile": "数据库镜像",
+      "booking_system/booking_backend/fastapi/Dockerfile": "后端镜像",
+      "booking_system/frontend/Dockerfile": "前端镜像",
+      "proxy/Dockerfile": "代理镜像"
+    },
+    "configuration_files": {
+      "proxy/nginx.conf": "Nginx代理配置",
+      "database/init.sql": "数据库初始化脚本",
+      "env.example": "环境变量示例"
+    },
+    "deployment_scripts": {
+      "install-ec2.sh": "AWS环境初始化",
+      "deploy.sh": "应用部署脚本"
+    }
+  }
+}
