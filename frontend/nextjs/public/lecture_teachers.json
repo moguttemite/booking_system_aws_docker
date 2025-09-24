@@ -1,0 +1,26 @@
+[
+  {
+    "lecture_id": 1,
+    "teacher_ids": 1
+  },
+  {
+    "lecture_id": 2,
+    "teacher_ids": 2
+  },
+  {
+    "lecture_id": 1753111165289,
+    "teacher_ids": 1
+  },
+  {
+    "lecture_id": 1753690522001,
+    "teacher_ids": 9
+  },
+  {
+    "lecture_id": 1753690522001,
+    "teacher_ids": 8
+  },
+  {
+    "lecture_id": 1753690522001,
+    "teacher_ids": 10
+  }
+]

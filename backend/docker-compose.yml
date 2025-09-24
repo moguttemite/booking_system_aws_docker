@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 后端服务 - 独立测试
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: booking_backend_test
+    restart: unless-stopped
+    environment:
+      # 数据库配置 - 使用外部数据库
+      POSTGRES_SERVER: host.docker.internal  # 连接到宿主机数据库
+      POSTGRES_PORT: 5433  # 使用数据库的测试端口
+      POSTGRES_USER: lecture_admin
+      POSTGRES_PASSWORD: postgresroot
+      POSTGRES_DB: lecture_booking
+      # 后端配置
+      SECRET_KEY: your-secret-key-here-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      FIRST_SUPERUSER: admin@example.com
+      FIRST_SUPERUSER_PASSWORD: admin123
+      # 环境
+      PYTHONPATH: /app
+    ports:
+      - "8000:8000"  # 暴露端口用于调试
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 允许访问宿主机
+
+networks:
+  default:
+    driver: bridge

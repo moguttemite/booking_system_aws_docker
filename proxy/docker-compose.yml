@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # 代理服务 - 独立测试
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: booking_proxy_test
+    restart: unless-stopped
+    ports:
+      - "80:80"    # HTTP端口
+      - "443:443"  # HTTPS端口（如果有SSL证书）
+    volumes:
+      # 如果有SSL证书，取消注释下面的行
+      # - ./ssl:/etc/nginx/ssl:ro
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 允许访问宿主机
+
+networks:
+  default:
+    driver: bridge

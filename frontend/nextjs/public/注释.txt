@@ -1,0 +1,8 @@
+bookable.json -> 可以被预约的课程列表 -> 讲师添加，管理员审核，测试阶段全部允许
+lecture_schedules.json -> 课程可被预约的时间安排 -> 讲师添加/用户预约选择
+lecture_reservations.json -> 用户预约的记录 -> 用户添加/更新前端
+lecture_teachers.json -> 讲师与课程的关联关系 -> 系统自动生成/管理员管理
+testdata.json -> 测试数据集合 -> 开发阶段测试用
+testdata_generated.json -> 自动生成的测试数据 -> 系统自动生成
+mock/teacher_profiles.json -> 讲师个人资料信息 -> 讲师注册/管理员管理
+mock/carousel-config.json -> 首页轮播图配置 -> 管理员配置/前端展示
