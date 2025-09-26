@@ -123,5 +123,6 @@ main() {
 # 执行主函数
 main
 
-# 执行传入的命令
-exec "$@"
+# 启动Nginx
+log_info "启动Nginx服务..."
+exec nginx -g "daemon off;"
