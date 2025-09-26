@@ -18,6 +18,12 @@ log_error() {
 check_env_vars() {
     log_info "检查环境变量..."
     
+    # 如果配置文件已经存在且不是模板，跳过环境变量检查
+    if [ -f "/etc/nginx/nginx.conf" ] && [ ! -f "/etc/nginx/nginx-simple.conf.template" ]; then
+        log_info "使用现有配置文件，跳过环境变量检查"
+        return 0
+    fi
+    
     if [ -z "$FRONTEND_HOST" ]; then
         log_error "FRONTEND_HOST 环境变量未设置"
         exit 1
@@ -44,6 +50,12 @@ check_env_vars() {
 # 生成配置文件
 generate_config() {
     log_info "生成Nginx配置文件..."
+    
+    # 如果配置文件已经存在且不是模板，跳过生成
+    if [ -f "/etc/nginx/nginx.conf" ] && [ ! -f "/etc/nginx/nginx-simple.conf.template" ]; then
+        log_info "使用现有配置文件，跳过生成"
+        return 0
+    fi
     
     # 使用envsubst替换模板中的环境变量
     envsubst '${FRONTEND_HOST} ${FRONTEND_PORT} ${BACKEND_HOST} ${BACKEND_PORT} ${DOMAIN_NAME}' \
