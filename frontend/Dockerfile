@@ -28,7 +28,6 @@ COPY nextjs/public ./public
 COPY nextjs/next.config.ts ./
 COPY nextjs/tsconfig.json ./
 COPY nextjs/eslint.config.mjs ./
-COPY nextjs/.eslintrc.json ./
 COPY nextjs/next-env.d.ts ./
 
 # 设置环境变量
