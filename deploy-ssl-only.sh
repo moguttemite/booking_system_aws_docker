@@ -125,6 +125,13 @@ else
     echo "✅ SSL证书已存在"
 fi
 
+# 修复SSL证书权限（确保nginx用户可以读取）
+echo "🔧 修复SSL证书权限..."
+chmod 644 ssl_certs/cert.pem
+chmod 644 ssl_certs/key.pem
+chown -R 101:101 ssl_certs/ 2>/dev/null || true  # nginx用户的UID:GID，忽略错误
+echo "✅ SSL证书权限修复完成"
+
 # 停止现有容器（仅在start操作时）
 if [ "$ACTION" = "start" ]; then
     echo "🛑 停止现有容器..."
