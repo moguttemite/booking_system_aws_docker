@@ -101,7 +101,6 @@ services:
       - "443:443"
     volumes:
       - ssl_certs:/etc/nginx/ssl
-      - ./proxy/nginx-ssl.conf:/etc/nginx/nginx.conf
     networks:
       - public_net
     healthcheck:

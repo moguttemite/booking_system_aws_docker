@@ -29,6 +29,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # 复制配置模板
 COPY nginx.conf.template /etc/nginx/templates/nginx.conf.template
 COPY nginx-simple.conf.template /etc/nginx/nginx-simple.conf.template
+COPY nginx-ssl.conf.template /etc/nginx/nginx-ssl.conf.template
 
 # 复制SSL证书（如果有的话）
 # COPY ssl/ /etc/nginx/ssl/

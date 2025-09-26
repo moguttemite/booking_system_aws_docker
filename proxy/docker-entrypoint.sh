@@ -57,9 +57,15 @@ generate_config() {
         return 0
     fi
     
+    # 检查是否有写权限
+    if [ ! -w "/etc/nginx/nginx.conf" ]; then
+        log_info "配置文件为只读，跳过生成"
+        return 0
+    fi
+    
     # 使用envsubst替换模板中的环境变量
     envsubst '${FRONTEND_HOST} ${FRONTEND_PORT} ${BACKEND_HOST} ${BACKEND_PORT} ${DOMAIN_NAME}' \
-        < /etc/nginx/nginx-simple.conf.template \
+        < /etc/nginx/nginx-ssl.conf.template \
         > /etc/nginx/nginx.conf
     
     log_info "配置文件生成完成"
