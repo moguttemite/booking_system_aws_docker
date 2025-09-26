@@ -24,7 +24,7 @@
 - **语言**: Python 3.11
 - **服务器**: Uvicorn 0.24.0
 - **数据库ORM**: SQLAlchemy 2.0.23
-- **数据库**: PostgreSQL 15
+- **数据库**: PostgreSQL 15 (统一版本)
 - **认证**: JWT (python-jose)
 - **密码加密**: bcrypt (passlib)
 - **数据验证**: Pydantic 2.5.0

@@ -1,0 +1,42 @@
+name: booking-system-frontend-dev
+
+services:
+  # 前端服务 - 开发环境
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: booking_frontend_dev
+    restart: unless-stopped
+    environment:
+      # 前端配置
+      NEXT_PUBLIC_API_BASE_URL: http://host.docker.internal:8000/api  # 连接到宿主机后端
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: 1
+      # 开发环境配置
+      NEXT_PUBLIC_APP_ENV: development
+      NEXT_PUBLIC_DEBUG: true
+    ports:
+      - "3000:3000"  # 暴露端口用于调试
+    volumes:
+      # 挂载源代码用于热重载
+      - ./nextjs:/app
+      - /app/node_modules
+      - /app/.next
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 允许访问宿主机
+
+networks:
+  default:
+    driver: bridge

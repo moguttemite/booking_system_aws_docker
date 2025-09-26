@@ -1,0 +1,46 @@
+# Proxy单元测试专用Dockerfile
+FROM nginx:alpine
+
+# 安装测试工具
+RUN apk add --no-cache \
+    wget \
+    curl \
+    bash \
+    jq \
+    netcat-openbsd
+
+# 复制Nginx配置文件
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# 创建测试脚本目录
+RUN mkdir -p /opt/tests
+
+# 复制测试脚本
+COPY test_proxy_unit.sh /opt/tests/
+COPY test_nginx_config.sh /opt/tests/
+COPY test_proxy_routing.sh /opt/tests/
+
+# 设置执行权限
+RUN chmod +x /opt/tests/*.sh
+
+# 创建日志目录
+RUN mkdir -p /var/log/nginx
+
+# 设置权限
+RUN chown -R nginx:nginx /var/log/nginx
+
+# 暴露端口
+EXPOSE 80
+EXPOSE 443
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
+
+# 启动脚本
+COPY start_proxy_unit.sh /start.sh
+RUN chmod +x /start.sh
+
+# 启动Nginx
+CMD ["/start.sh"]
+

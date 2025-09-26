@@ -20,7 +20,16 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY nextjs/ .
+COPY nextjs/package.json nextjs/pnpm-lock.yaml* nextjs/pnpm-workspace.yaml* ./
+COPY nextjs/app ./app
+COPY nextjs/components ./components
+COPY nextjs/lib ./lib
+COPY nextjs/public ./public
+COPY nextjs/next.config.ts ./
+COPY nextjs/tsconfig.json ./
+COPY nextjs/eslint.config.mjs ./
+COPY nextjs/.eslintrc.json ./
+COPY nextjs/next-env.d.ts ./
 
 # 设置环境变量
 ENV NEXT_TELEMETRY_DISABLED 1
@@ -58,6 +67,10 @@ EXPOSE 3000
 
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
+
+# 健康检查 - 使用原生Node.js而不是curl
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000', r => process.exit(r.statusCode===200?0:1)).on('error', ()=>process.exit(1))"
 
 # 启动应用
 CMD ["node", "server.js"]

@@ -38,7 +38,7 @@ services:
   # 后端服务
   backend:
     build:
-      context: ./booking_system/booking_backend/fastapi
+      context: ./backend
       dockerfile: Dockerfile
     container_name: booking_backend
     environment:
@@ -62,7 +62,7 @@ services:
       - public_net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request,sys\ntry:\n  urllib.request.urlopen('http://localhost:8000/health',timeout=3)\n  sys.exit(0)\nexcept:\n  sys.exit(1)\nPY"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -71,14 +71,15 @@ services:
   # 前端服务
   frontend:
     build:
-      context: ./booking_system/frontend
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: booking_frontend
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_BASE_URL: http://proxy/api
+      NEXT_PUBLIC_API_BASE_URL: /api
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     expose:
       - "3000"
     networks:
@@ -98,8 +99,10 @@ services:
       dockerfile: Dockerfile
     container_name: booking_proxy
     depends_on:
-      - frontend
-      - backend
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
     ports:
       - "80:80"
       - "443:443"
@@ -117,7 +120,7 @@ services:
 networks:
   backend_net:
     driver: bridge
-    internal: false  # 允许访问外部网络（用于拉取镜像等）
+    internal: true  # 只给后端/数据库用，生产环境隔离
   public_net:
     driver: bridge
     internal: false  # 允许访问外部网络

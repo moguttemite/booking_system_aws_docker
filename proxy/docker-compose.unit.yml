@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Proxy单元测试服务
+  proxy-unit:
+    build:
+      context: .
+      dockerfile: Dockerfile.unit
+    container_name: booking_proxy_unit_test
+    restart: unless-stopped
+    ports:
+      - "8081:80"    # 使用不同端口避免冲突
+      - "8443:443"   # HTTPS端口（如果有SSL证书）
+    volumes:
+      # 挂载测试结果目录
+      - ./test-results:/opt/tests/results
+      # 如果有SSL证书，取消注释下面的行
+      # - ./ssl:/etc/nginx/ssl:ro
+    environment:
+      - NGINX_ENVSUBST_TEMPLATE_DIR=/etc/nginx/templates
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx/conf.d
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # 允许访问宿主机
+    networks:
+      - proxy-test-network
+
+  # Mock前端服务（用于测试代理功能）
+  mock-frontend:
+    image: nginx:alpine
+    container_name: booking_mock_frontend
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    volumes:
+      - ./mock-frontend:/usr/share/nginx/html:ro
+    networks:
+      - proxy-test-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Mock后端服务（用于测试代理功能）
+  mock-backend:
+    image: nginx:alpine
+    container_name: booking_mock_backend
+    restart: unless-stopped
+    ports:
+      - "8001:80"
+    volumes:
+      - ./mock-backend:/usr/share/nginx/html:ro
+    networks:
+      - proxy-test-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+networks:
+  proxy-test-network:
+    driver: bridge
+    name: booking_proxy_test_network

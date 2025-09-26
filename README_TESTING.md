@@ -31,7 +31,7 @@
 **启动命令**:
 ```bash
 cd database
-docker-compose up -d
+docker compose up -d
 ```
 
 **测试命令**:
@@ -62,7 +62,7 @@ chmod +x test_database.sh
 **启动命令**:
 ```bash
 cd backend
-docker-compose up -d
+docker compose up -d
 ```
 
 **测试命令**:
@@ -92,7 +92,7 @@ chmod +x test_backend.sh
 **启动命令**:
 ```bash
 cd frontend
-docker-compose up -d
+docker compose up -d
 ```
 
 **测试命令**:
@@ -121,7 +121,7 @@ chmod +x test_frontend.sh
 **启动命令**:
 ```bash
 cd proxy
-docker-compose up -d
+docker compose up -d
 ```
 
 **测试命令**:
@@ -168,16 +168,16 @@ chmod +x test_all_services.sh
 ### 快速验证顺序:
 ```bash
 # 1. 启动数据库
-cd database && docker-compose up -d
+cd database && docker compose up -d
 
 # 2. 启动后端
-cd ../backend && docker-compose up -d
+cd ../backend && docker compose up -d
 
 # 3. 启动前端
-cd ../frontend && docker-compose up -d
+cd ../frontend && docker compose up -d
 
 # 4. 启动代理
-cd ../proxy && docker-compose up -d
+cd ../proxy && docker compose up -d
 ```
 
 ## 故障排除
@@ -193,7 +193,7 @@ cd ../proxy && docker-compose up -d
    - 检查服务间网络连接
 
 3. **容器启动失败**
-   - 查看容器日志: `docker-compose logs`
+   - 查看容器日志: `docker compose logs`
    - 检查Dockerfile和配置文件
 
 4. **数据库连接失败**
@@ -204,10 +204,10 @@ cd ../proxy && docker-compose up -d
 
 ```bash
 # 清理所有测试容器
-docker-compose -f database/docker-compose.yml down
-docker-compose -f backend/docker-compose.yml down
-docker-compose -f frontend/docker-compose.yml down
-docker-compose -f proxy/docker-compose.yml down
+docker compose -f database/docker-compose.yml down
+docker compose -f backend/docker-compose.yml down
+docker compose -f frontend/docker-compose.yml down
+docker compose -f proxy/docker-compose.yml down
 
 # 清理所有相关容器
 docker ps -a | grep booking | awk '{print $1}' | xargs docker rm -f
@@ -218,14 +218,17 @@ docker volume ls | grep test | awk '{print $2}' | xargs docker volume rm
 
 ## 生产环境部署
 
-完成独立测试后，可以使用主docker-compose文件进行生产部署:
+完成独立测试后，可以使用主docker compose文件进行生产部署:
 
 ```bash
 # 生产环境
-docker-compose up -d
+docker compose up -d
 
 # 开发环境
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
+
+# 生产环境（推荐，包含SSL和安全配置）
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ## 注意事项

@@ -45,6 +45,35 @@ cp env.example .env
 
 编辑 `.env` 文件，修改相应的配置值。
 
+### ⚠️ 生产环境安全警告
+
+**部署到生产环境前，必须完成以下安全配置：**
+
+1. **修改默认密钥**：
+   ```bash
+   # 创建密钥文件
+   mkdir -p secrets
+   echo "your_strong_password" > secrets/postgres_password.txt
+   echo "your_jwt_secret_key" > secrets/secret_key.txt
+   echo "your_superuser_password" > secrets/superuser_password.txt
+   chmod 600 secrets/*.txt
+   ```
+
+2. **配置域名和SSL**：
+   ```bash
+   # 设置域名
+   export DOMAIN_NAME=your-domain.com
+   export ADMIN_EMAIL=admin@your-domain.com
+   ```
+
+3. **使用生产配置**：
+   ```bash
+   # 使用生产环境配置
+   docker compose -f docker-compose.prod.yml up -d
+   ```
+
+详细的生产部署指南请参考：[DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
+
 ### 3. 构建和启动服务
 
 #### 生产环境（推荐）
@@ -118,12 +147,12 @@ docker-compose down -v
 - 启动方式：使用start.py进行开发模式启动
 - 特性：自动重连、健康检查、非root用户运行、JWT认证
 
-### 数据库 (PostgreSQL)
+### 数据库 (PostgreSQL 15)
 - 内部端口：5432
 - 数据库名：lecture_booking
 - 用户：lecture_admin
 - 数据持久化：使用Docker卷
-- 特性：自动初始化、健康检查、完整的讲座预订系统表结构
+- 特性：自动初始化、健康检查、完整的讲座预订系统表结构、统一版本管理
 
 ### 代理 (Nginx)
 - 外部端口：80, 443

@@ -1,0 +1,61 @@
+name: booking-system-proxy-dev
+
+services:
+  # 代理服务 - 开发环境
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: booking_proxy_dev
+    restart: unless-stopped
+    environment:
+      # 代理配置
+      NGINX_ENVSUBST_TEMPLATE_DIR: /etc/nginx/templates
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/conf.d
+      # 上游服务配置
+      FRONTEND_HOST: host.docker.internal
+      FRONTEND_PORT: 3000
+      BACKEND_HOST: host.docker.internal
+      BACKEND_PORT: 8000
+      # 开发环境配置
+      NGINX_LOG_LEVEL: debug
+      WAIT_FOR_UPSTREAM: "true"
+    ports:
+      - "80:80"    # HTTP端口
+      - "443:443"  # HTTPS端口
+    volumes:
+      # 开发环境挂载配置文件用于热重载
+      - ./nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+      - ./error-pages:/usr/share/nginx/html:ro
+      # 日志持久化
+      - proxy-logs-dev:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # 开发环境资源限制更宽松
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  proxy-logs-dev:
+    driver: local

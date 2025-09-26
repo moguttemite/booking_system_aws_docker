@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  # 数据库服务
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: booking_database_ubuntu
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lecture_booking
+      POSTGRES_USER: lecture_admin
+      POSTGRES_PASSWORD: postgresroot
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data_ubuntu:/var/lib/postgresql/data
+      - ./database/initdb:/docker-entrypoint-initdb.d:ro
+    expose:
+      - "5432"
+    networks:
+      - backend_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lecture_admin -d lecture_booking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: booking_backend_ubuntu
+    environment:
+      POSTGRES_SERVER: database
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: lecture_admin
+      POSTGRES_PASSWORD: postgresroot
+      POSTGRES_DB: lecture_booking
+      SECRET_KEY: your-secret-key-here-change-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      FIRST_SUPERUSER: admin@example.com
+      FIRST_SUPERUSER_PASSWORD: admin123
+      CORS_ORIGINS: http://localhost:3000,http://localhost
+    depends_on:
+      database:
+        condition: service_healthy
+    expose:
+      - "8000"
+    networks:
+      - backend_net
+      - public_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request,sys\ntry:\n  urllib.request.urlopen('http://localhost:8000/health',timeout=3)\n  sys.exit(0)\nexcept:\n  sys.exit(1)\nPY"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: booking_frontend_ubuntu
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: /api
+    depends_on:
+      backend:
+        condition: service_healthy
+    expose:
+      - "3000"
+    networks:
+      - public_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "node - <<'JS'\nconst http = require('http');\nconst options = { hostname: 'localhost', port: 3000, path: '/', timeout: 3000 };\nconst req = http.request(options, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });\nreq.on('error', () => process.exit(1));\nreq.on('timeout', () => process.exit(1));\nreq.end();\nJS"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Nginx代理服务
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    container_name: booking_proxy_ubuntu
+    environment:
+      FRONTEND_HOST: frontend
+      FRONTEND_PORT: 3000
+      BACKEND_HOST: backend
+      BACKEND_PORT: 8000
+      NGINX_LOG_LEVEL: info
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - public_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+# 网络配置
+networks:
+  backend_net:
+    driver: bridge
+    internal: true  # Ubuntu测试环境使用网络隔离
+  public_net:
+    driver: bridge
+    internal: false
+
+# 数据卷配置
+volumes:
+  postgres_data_ubuntu:
+    driver: local

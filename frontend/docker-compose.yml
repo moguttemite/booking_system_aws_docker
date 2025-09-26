@@ -1,4 +1,4 @@
-version: '3.8'
+name: booking-system-frontend-test
 
 services:
   # 前端服务 - 独立测试
@@ -13,6 +13,9 @@ services:
       NEXT_PUBLIC_API_BASE_URL: http://host.docker.internal:8000/api  # 连接到宿主机后端
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: 1
+      # 开发环境配置
+      NEXT_PUBLIC_APP_ENV: development
+      NEXT_PUBLIC_DEBUG: true
     ports:
       - "3000:3000"  # 暴露端口用于调试
     healthcheck:
@@ -28,6 +31,11 @@ services:
         max-file: "3"
     extra_hosts:
       - "host.docker.internal:host-gateway"  # 允许访问宿主机
+    # 开发环境挂载源代码（可选）
+    # volumes:
+    #   - ./nextjs:/app
+    #   - /app/node_modules
+    #   - /app/.next
 
 networks:
   default:

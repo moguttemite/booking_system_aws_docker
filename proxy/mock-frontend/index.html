@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Frontend - 讲座预订系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .status {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .info {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            color: #1565c0;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .test-links {
+            margin-top: 30px;
+        }
+        .test-links a {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            background: #2196f3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .test-links a:hover {
+            background: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Mock Frontend Service</h1>
+        
+        <div class="status">
+            <strong>✓ 服务状态:</strong> 运行正常
+        </div>
+        
+        <div class="info">
+            <strong>📋 服务信息:</strong><br>
+            • 服务名称: Mock Frontend<br>
+            • 端口: 80 (容器内) / 3001 (宿主机)<br>
+            • 用途: 代理测试用前端服务<br>
+            • 启动时间: <span id="startTime"></span>
+        </div>
+        
+        <h2>🔧 测试功能</h2>
+        <p>这是一个用于测试Nginx代理功能的Mock前端服务。</p>
+        
+        <div class="test-links">
+            <a href="/api/health">测试API代理</a>
+            <a href="/health">测试健康检查</a>
+            <a href="/test">测试路由</a>
+        </div>
+        
+        <h2>📊 请求信息</h2>
+        <div id="requestInfo">
+            <p><strong>User-Agent:</strong> <span id="userAgent"></span></p>
+            <p><strong>X-Real-IP:</strong> <span id="realIp"></span></p>
+            <p><strong>X-Forwarded-For:</strong> <span id="forwardedFor"></span></p>
+            <p><strong>X-Forwarded-Proto:</strong> <span id="forwardedProto"></span></p>
+        </div>
+    </div>
+    
+    <script>
+        // 显示启动时间
+        document.getElementById('startTime').textContent = new Date().toLocaleString();
+        
+        // 显示请求信息（这些信息会由Nginx代理设置）
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+        
+        // 注意：这些头信息需要从服务器端获取，这里只是示例
+        document.getElementById('realIp').textContent = '由Nginx代理设置';
+        document.getElementById('forwardedFor').textContent = '由Nginx代理设置';
+        document.getElementById('forwardedProto').textContent = '由Nginx代理设置';
+    </script>
+</body>
+</html>
+

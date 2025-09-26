@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Backend API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .status {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .api-endpoint {
+            background: #f5f5f5;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .get { background: #4caf50; color: white; }
+        .post { background: #ff9800; color: white; }
+        .put { background: #2196f3; color: white; }
+        .delete { background: #f44336; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Mock Backend API</h1>
+        
+        <div class="status">
+            <strong>✓ 服务状态:</strong> 运行正常
+        </div>
+        
+        <h2>📋 API端点</h2>
+        
+        <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <strong>/health</strong> - 健康检查
+        </div>
+        
+        <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <strong>/api/v1/users</strong> - 获取用户列表
+        </div>
+        
+        <div class="api-endpoint">
+            <span class="method post">POST</span>
+            <strong>/api/v1/users/login</strong> - 用户登录
+        </div>
+        
+        <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <strong>/api/v1/lectures</strong> - 获取讲座列表
+        </div>
+        
+        <div class="api-endpoint">
+            <span class="method post">POST</span>
+            <strong>/api/v1/bookings</strong> - 创建预约
+        </div>
+        
+        <h2>🔍 测试信息</h2>
+        <p>这是一个用于测试Nginx代理功能的Mock后端服务。</p>
+        <p>所有API请求都会被代理到后端服务，这里只是展示可用的端点。</p>
+        
+        <h2>📊 请求头信息</h2>
+        <p>以下信息显示了Nginx代理设置的请求头：</p>
+        <ul>
+            <li><strong>Host:</strong> 由Nginx代理设置</li>
+            <li><strong>X-Real-IP:</strong> 客户端真实IP</li>
+            <li><strong>X-Forwarded-For:</strong> 代理链IP</li>
+            <li><strong>X-Forwarded-Proto:</strong> 原始协议</li>
+        </ul>
+    </div>
+</body>
+</html>
+

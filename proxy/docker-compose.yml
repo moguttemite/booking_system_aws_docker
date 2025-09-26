@@ -1,4 +1,4 @@
-version: '3.8'
+name: booking-system-proxy-test
 
 services:
   # 代理服务 - 独立测试
@@ -8,18 +8,31 @@ services:
       dockerfile: Dockerfile
     container_name: booking_proxy_test
     restart: unless-stopped
+    environment:
+      # 代理配置
+      NGINX_ENVSUBST_TEMPLATE_DIR: /etc/nginx/templates
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/conf.d
+      # 上游服务配置
+      FRONTEND_HOST: host.docker.internal
+      FRONTEND_PORT: 3000
+      BACKEND_HOST: host.docker.internal
+      BACKEND_PORT: 8000
+      # 日志配置
+      NGINX_LOG_LEVEL: info
     ports:
-      - "80:80"    # HTTP端口
-      - "443:443"  # HTTPS端口（如果有SSL证书）
+      - "8080:80"    # HTTP端口
+      - "8443:443"  # HTTPS端口（如果有SSL证书）
     volumes:
       # 如果有SSL证书，取消注释下面的行
       # - ./ssl:/etc/nginx/ssl:ro
+      # 日志持久化
+      - proxy-logs:/var/log/nginx
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     logging:
       driver: json-file
       options:
@@ -27,7 +40,20 @@ services:
         max-file: "3"
     extra_hosts:
       - "host.docker.internal:host-gateway"  # 允许访问宿主机
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
 
 networks:
   default:
     driver: bridge
+
+volumes:
+  proxy-logs:
+    driver: local

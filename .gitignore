@@ -1,0 +1,145 @@
+# 环境变量文件
+.env
+.env.local
+.env.production
+.env.development
+
+# 日志文件
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 运行时数据
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# 依赖目录
+node_modules/
+jspm_packages/
+
+# 可选的npm缓存目录
+.npm
+
+# 可选的eslint缓存
+.eslintcache
+
+# 输出目录
+dist/
+build/
+.next/
+out/
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker相关
+.dockerignore
+
+# 操作系统生成的文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.temp
+
+# 备份文件
+*.bak
+*.backup
+
+# 密钥和敏感信息
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# 数据目录
+pgdata/
+pgdata_*/
+postgres_data/
+postgres_data_*/
+
+# 测试结果
+test-results/
+coverage/
+
+# 缓存目录
+.cache/
+.parcel-cache/
+
+# 本地开发文件
+.local/
+local/
+
+# 压缩文件
+*.zip
+*.tar.gz
+*.rar
+
+# 文档生成
+docs/_build/
+
+# Python相关
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# 前端构建产物
+frontend/nextjs/.next/
+frontend/nextjs/out/
+frontend/nextjs/node_modules/
+
+# 后端构建产物
+backend/fastapi/__pycache__/
+backend/fastapi/.pytest_cache/
+
+# 代理相关
+proxy/test-results/
+
+# 已使用完成的不用的文件
+已经使用完成的不用的文件放在这里/
+
+# AWS相关
+.aws/
+aws-credentials
+
+# 本地配置文件
+docker-compose.override.yml
+docker-compose.local.yml
+
+# 监控和日志
+monitoring/
+grafana-data/
+prometheus-data/
+
+# 备份文件
+backups/
+*.backup
+*.dump

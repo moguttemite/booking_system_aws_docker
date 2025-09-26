@@ -38,7 +38,7 @@ services:
   # 后端服务
   backend:
     build:
-      context: ./booking_system/booking_backend/fastapi
+      context: ./backend
       dockerfile: Dockerfile
     container_name: booking_backend_dev
     environment:
@@ -71,12 +71,12 @@ services:
   # 前端服务
   frontend:
     build:
-      context: ./booking_system/frontend
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: booking_frontend_dev
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api  # 开发环境直接访问后端
+      NEXT_PUBLIC_API_BASE_URL: /api  # 开发环境通过代理访问
     depends_on:
       - backend
     ports:

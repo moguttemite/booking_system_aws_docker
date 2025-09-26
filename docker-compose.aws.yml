@@ -1,0 +1,250 @@
+version: '3.8'
+
+services:
+  # 数据库服务
+  database:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: booking_database_aws
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lecture_booking
+      POSTGRES_USER: lecture_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data_aws:/var/lib/postgresql/data
+      - ./database/initdb:/docker-entrypoint-initdb.d:ro
+    expose:
+      - "5432"
+    networks:
+      - backend_net
+    secrets:
+      - postgres_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lecture_admin -d lecture_booking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-region: ${AWS_REGION:-ap-northeast-1}
+        awslogs-group: booking-system/database
+        awslogs-create-group: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+        reservations:
+          cpus: "1.0"
+          memory: 1g
+
+  # 后端服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: booking_backend_aws
+    restart: unless-stopped
+    environment:
+      POSTGRES_SERVER: database
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: lecture_admin
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: lecture_booking
+      SECRET_KEY_FILE: /run/secrets/secret_key
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      FIRST_SUPERUSER: ${ADMIN_EMAIL:-admin@example.com}
+      FIRST_SUPERUSER_PASSWORD_FILE: /run/secrets/superuser_password
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://localhost}
+    depends_on:
+      database:
+        condition: service_healthy
+    expose:
+      - "8000"
+    networks:
+      - backend_net
+      - public_net
+    secrets:
+      - postgres_password
+      - secret_key
+      - superuser_password
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; urllib.request.urlopen('http://localhost:8000/health',timeout=5); sys.exit(0)\""]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-region: ${AWS_REGION:-ap-northeast-1}
+        awslogs-group: booking-system/backend
+        awslogs-create-group: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+        reservations:
+          cpus: "0.5"
+          memory: 512m
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: booking_frontend_aws
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: /api
+    depends_on:
+      backend:
+        condition: service_healthy
+    expose:
+      - "3000"
+    networks:
+      - public_net
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000', r => process.exit(r.statusCode===200?0:1)).on('error', ()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-region: ${AWS_REGION:-ap-northeast-1}
+        awslogs-group: booking-system/frontend
+        awslogs-create-group: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          cpus: "0.25"
+          memory: 256m
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  # Nginx代理服务
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    container_name: booking_proxy_aws
+    restart: unless-stopped
+    environment:
+      FRONTEND_HOST: frontend
+      FRONTEND_PORT: 3000
+      BACKEND_HOST: backend
+      BACKEND_PORT: 8000
+      NGINX_LOG_LEVEL: info
+      DOMAIN_NAME: ${DOMAIN_NAME:-localhost}
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - public_net
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - webroot:/var/www/certbot
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-region: ${AWS_REGION:-ap-northeast-1}
+        awslogs-group: booking-system/proxy
+        awslogs-create-group: "true"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          cpus: "0.25"
+          memory: 256m
+    security_opt:
+      - no-new-privileges:true
+
+  # Certbot服务（SSL证书管理）
+  certbot:
+    image: certbot/certbot
+    container_name: booking_certbot_aws
+    restart: unless-stopped
+    volumes:
+      - letsencrypt:/etc/letsencrypt
+      - webroot:/var/www/certbot
+    command: sh -c "
+      if [ ! -f /etc/letsencrypt/live/${DOMAIN_NAME:-localhost}/fullchain.pem ]; then
+        echo '首次获取SSL证书...'
+        certbot certonly --webroot -w /var/www/certbot -d ${DOMAIN_NAME:-localhost} --agree-tos -m ${ADMIN_EMAIL:-admin@example.com} --non-interactive
+      fi
+      echo '启动证书续期服务...'
+      crond -f
+    "
+    depends_on:
+      proxy:
+        condition: service_started
+    networks:
+      - public_net
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-region: ${AWS_REGION:-ap-northeast-1}
+        awslogs-group: booking-system/certbot
+        awslogs-create-group: "true"
+
+# 网络配置
+networks:
+  backend_net:
+    driver: bridge
+    internal: true  # 后端网络隔离
+  public_net:
+    driver: bridge
+    internal: false
+
+# 数据卷配置
+volumes:
+  postgres_data_aws:
+    driver: local
+  letsencrypt:
+    driver: local
+  webroot:
+    driver: local
+
+# Secrets配置
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  secret_key:
+    file: ./secrets/secret_key.txt
+  superuser_password:
+    file: ./secrets/superuser_password.txt

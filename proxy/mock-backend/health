@@ -1,0 +1,13 @@
+{
+  "status": "healthy",
+  "service": "mock-backend",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "version": "1.0.0",
+  "uptime": "0s",
+  "checks": {
+    "database": "healthy",
+    "memory": "healthy",
+    "disk": "healthy"
+  }
+}
+

@@ -1,12 +1,12 @@
-# 使用官方PostgreSQL 17镜像作为基础镜像
-FROM postgres:17-alpine
+# 使用官方PostgreSQL 15镜像作为基础镜像
+FROM postgres:15-alpine
 
 # 设置环境变量
 ENV POSTGRES_DB=lecture_booking
 ENV POSTGRES_USER=lecture_admin
 ENV POSTGRES_PASSWORD=postgresroot
 ENV POSTGRES_INITDB_ARGS="--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-# PostgreSQL 17 的 PGDATA 路径
+# PostgreSQL 15 的 PGDATA 路径
 ENV PGDATA=/var/lib/postgresql/data/pgdata
 
 # 创建必要的目录
@@ -27,7 +27,7 @@ RUN apk add --no-cache \
     postgresql-dev \
     && rm -rf /var/cache/apk/*
 
-# 设置PostgreSQL 18配置优化
+# 设置PostgreSQL 15配置优化
 RUN echo "shared_preload_libraries = 'pg_stat_statements'" >> /usr/local/share/postgresql/postgresql.conf.sample && \
     echo "pg_stat_statements.track = all" >> /usr/local/share/postgresql/postgresql.conf.sample && \
     echo "log_statement = 'all'" >> /usr/local/share/postgresql/postgresql.conf.sample && \
