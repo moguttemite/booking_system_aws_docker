@@ -114,7 +114,7 @@ services:
     image: certbot/certbot
     container_name: booking_certbot_ssl
     volumes:
-      - ssl_certs:/etc/letsencrypt
+      - ./ssl_certs:/etc/letsencrypt
     command: sh -c "echo 'SSL证书将在首次启动时生成' && sleep infinity"
     networks:
       - public_net
