@@ -100,7 +100,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ssl_certs:/etc/nginx/ssl
+      - ./ssl_certs:/etc/nginx/ssl
     networks:
       - public_net
     healthcheck:
@@ -130,4 +130,3 @@ networks:
 volumes:
   postgres_data_ssl:
     driver: local
-  ssl_certs:
